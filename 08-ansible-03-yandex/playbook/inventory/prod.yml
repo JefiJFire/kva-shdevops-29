@@ -1,0 +1,9 @@
+---
+all:
+  hosts:
+    clickhouse:
+      <ip_here>
+    vector:
+      <ip_here>
+    lighthouse:
+      <ip_here>

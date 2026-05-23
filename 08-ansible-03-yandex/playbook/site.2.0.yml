@@ -1,0 +1,159 @@
+- name: Install Clickhouse on Debian
+  hosts: clickhouse
+  become: yes
+  tags: clickhouse
+
+  handlers:
+  - name: Start clickhouse service
+    ansible.builtin.service:
+      name: clickhouse-server
+      state: started
+      enabled: true
+
+  tasks:
+    - name: Install required system packages
+      ansible.builtin.apt:
+        name: "{{ required_packages }}"
+        state: present
+
+    - name: Ensure /usr/share/keyrings directory exists
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download ClickHouse GPG key
+      ansible.builtin.get_url:
+        url: https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key
+        dest: /tmp/clickhouse-repo.key
+        mode: '0644'
+      register: _key_downloaded
+
+    - name: Convert key to GPG format and store in keyrings
+      ansible.builtin.command:
+        cmd: >-
+          gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
+          /tmp/clickhouse-repo.key
+        creates: /usr/share/keyrings/clickhouse-keyring.gpg
+      when: _key_downloaded is changed or not _key_downloaded.changed
+
+    - name: Remove temporary key file
+      ansible.builtin.file:
+        path: /tmp/clickhouse-repo.key
+        state: absent
+
+    - name: Determine system architecture
+      ansible.builtin.set_fact:
+        system_arch: "{{ ansible_facts['architecture'] }}"
+
+    - name: Add ClickHouse repository to APT sources
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by={{ clickhouse_keyring }} arch={{ system_arch }}] https://packages.clickhouse.com/deb stable main"
+        state: present
+        filename: clickhouse
+        update_cache: true 
+
+    - name: Install ClickHouse server and client
+      ansible.builtin.apt:
+        name: "{{ clickhouse_packages }}"
+        state: present
+        update_cache: true
+      notify: Start clickhouse service
+
+    - name: Flush handlers
+      meta: flush_handlers
+
+    - name: Create database
+      ansible.builtin.command: "clickhouse-client -q 'create database if not exists logs;'"
+      register: create_db
+      failed_when: create_db.rc != 0 and create_db.rc != 82
+      changed_when: create_db.rc == 0
+
+- name: Install Vector
+  hosts: vector
+  become: yes
+  tags: vector
+
+  handlers:
+  - name: restart vector
+    ansible.builtin.systemd:
+      name: vector
+      state: restarted
+      daemon_reload: true
+
+  tasks:
+    - name: Add the Vector repo
+      ansible.builtin.shell: curl -L https://setup.vector.dev | bash
+      args:
+        creates: /usr/bin/vector
+
+    - name: Install Vector
+      ansible.builtin.apt:
+        name: vector
+        state: present
+        update_cache: true
+
+    - name: Configure Vector (systemd journal → ClickHouse)
+      become: true
+      ansible.builtin.template:
+        src: vector.toml.j2
+        dest: /etc/vector/vector.toml
+      notify: restart vector
+
+- name: Install Lighthouse
+  hosts: lighthouse
+  become: yes
+  tags: lighthouse
+  
+  handlers:
+  - name: restart nginx
+    ansible.builtin.systemd:
+      name: nginx
+      state: restarted
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+         - nginx
+         - git
+        state: present
+        update_cache: true
+
+    - name: Git clone Lighthouse repo
+      ansible.builtin.git:
+        repo: https://github.com/VKCOM/lighthouse.git
+        dest: /var/www/lighthouse
+        version: master
+        force: true
+      notify: restart nginx
+
+    - name: Deploy Nginx configuration for LightHouse
+      ansible.builtin.template:
+        src: templates/lighthouse.conf.j2
+        dest: /etc/nginx/sites-available/lighthouse
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+
+    - name: Enable LightHouse site (remove default if needed)
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/lighthouse
+        dest: /etc/nginx/sites-enabled/lighthouse
+        state: link
+      notify: restart nginx
+
+    - name: Disable default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Flush handlers to restart Nginx if config changed
+      meta: flush_handlers
+
+    - name: Ensure Nginx is started and enabled
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
