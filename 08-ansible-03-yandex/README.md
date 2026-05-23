@@ -4,6 +4,9 @@
 
 ---
 
+# Ссылка на итоговый [playbook](/08-ansible-03-yandex/playbook/site.2.0.yml).
+
+---
 ## Что делает данный Playbook?
 
 В playbook расписано 3 plays под hosts: clickhouse, vector, lighthouse.  
