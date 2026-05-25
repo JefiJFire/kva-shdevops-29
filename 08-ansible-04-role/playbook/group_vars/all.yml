@@ -1,0 +1,12 @@
+ansible_user: <username>
+ansible_port: 22
+ansible_ssh_private_key_file: </path/to/ssh/key/file>
+clickhouse_packages:
+  - clickhouse-client
+  - clickhouse-server
+clickhouse_keyring: /usr/share/keyrings/clickhouse-keyring.gpg
+required_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg

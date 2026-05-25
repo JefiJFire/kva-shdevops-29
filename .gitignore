@@ -17,3 +17,7 @@ terraform.tfvars
 tfplan
 
 hosts.ini
+
+vector-role
+
+lighthouse-role
