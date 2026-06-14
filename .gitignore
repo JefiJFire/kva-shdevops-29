@@ -18,6 +18,9 @@ tfplan
 
 hosts.ini
 
-vector-role
+vector_role
 
 lighthouse-role
+
+my_own_namespace
+08-ansible-06-module/ansible
