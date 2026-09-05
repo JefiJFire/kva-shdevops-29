@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-wait-svc
+  labels:
+    app: nginx-wait-svc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-wait-svc
+  template:
+    metadata:
+      labels:
+        app: nginx-wait-svc
+    spec:
+      initContainers:
+      - name: wait-for-service
+        image: busybox
+        command:
+        - sh
+        - -c
+        - |
+          until nslookup nginx-wait-svc-service 2>&1 | grep -q "^Name:"; do
+            echo "waiting for service nginx-wait-svc-service...";
+            sleep 2;
+          done
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-wait-svc-service
+spec:
+  selector:
+    app: nginx-wait-svc
+  ports:
+  - port: 80
+    targetPort: 80
