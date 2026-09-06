@@ -26,3 +26,9 @@ my_own_namespace
 08-ansible-06-module/ansible
 
 sandbox
+
+*.crt
+*.key
+*.csr
+*.srl
+*.kubeconfig
