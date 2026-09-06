@@ -1,0 +1,76 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: manual-local-sc
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sc-backed-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-local-sc
+  hostPath:
+    path: /mnt/data/sc-demo
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sc-pvc
+spec:
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual-local-sc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-exchange-sc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-exchange-sc
+  template:
+    metadata:
+      labels:
+        app: data-exchange-sc
+    spec:
+      containers:
+        - name: writer
+          image: busybox
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              while true; do
+                echo "$(date) - write from busybox" >> /data/shared.log;
+                sleep 5;
+              done
+          volumeMounts:
+            - name: sc-storage
+              mountPath: /data
+
+        - name: reader
+          image: busybox
+          command: ["/bin/sh", "-c"]
+          args: ["tail -f /data/shared.log"]
+          volumeMounts:
+            - name: sc-storage
+              mountPath: /data
+
+      volumes:
+        - name: sc-storage
+          persistentVolumeClaim:
+            claimName: sc-pvc
