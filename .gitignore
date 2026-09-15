@@ -32,3 +32,5 @@ sandbox
 *.csr
 *.srl
 *.kubeconfig
+
+k8s-infra
