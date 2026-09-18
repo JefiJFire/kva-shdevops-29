@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: app
+  labels:
+    role: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: frontend
+  template:
+    metadata:
+      labels:
+        role: frontend
+    spec:
+      containers:
+        - name: network-multitool
+          image: wbitt/network-multitool:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: app
+  labels:
+    role: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: backend
+  template:
+    metadata:
+      labels:
+        role: backend
+    spec:
+      containers:
+        - name: network-multitool
+          image: wbitt/network-multitool:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache
+  namespace: app
+  labels:
+    role: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: cache
+  template:
+    metadata:
+      labels:
+        role: cache
+    spec:
+      containers:
+        - name: network-multitool
+          image: wbitt/network-multitool:latest
+          ports:
+            - containerPort: 80

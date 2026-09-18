@@ -1,0 +1,52 @@
+# 1. Запретить весь входящий трафик по умолчанию для всех подов в namespace app
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: app
+spec:
+  podSelector: {}      # применяется ко всем подам namespace
+  policyTypes:
+    - Ingress
+---
+# 2. Разрешить входящий трафик на backend только от frontend, порт 80
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: app
+spec:
+  podSelector:
+    matchLabels:
+      role: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# 3. Разрешить входящий трафик на cache только от backend, порт 80
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-cache
+  namespace: app
+spec:
+  podSelector:
+    matchLabels:
+      role: cache
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: backend
+      ports:
+        - protocol: TCP
+          port: 80
