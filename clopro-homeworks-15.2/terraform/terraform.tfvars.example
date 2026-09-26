@@ -1,0 +1,5 @@
+cloud_id    = "b1g..."
+folder_id   = "b1g..."
+bucket_name = "kva-shdevops-29-15-2"
+image_file  = "./files/picture.jpg"
+# token задаём через: export YC_TOKEN=$(yc iam create-token)
